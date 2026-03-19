@@ -1,5 +1,6 @@
-<u>**DOGS VS CATS**</u>
+**Dogs VS Cats**
+
 A deep classification network
 
 Usage:
-* Pending
+* [Pending]
