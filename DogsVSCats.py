@@ -65,34 +65,50 @@ data_augmentation = keras.Sequential(
     ]
 )
 
-inputs = keras.Input(shape=(180, 180, 3))
-x = data_augmentation(inputs)
-x = layers.Rescaling(1.0/255)(x)
-x = layers.Conv2D(filters=32, kernel_size=3, activation="relu")(x)
-x = layers.MaxPooling2D(pool_size=2)(x)
-x = layers.Conv2D(filters=64, kernel_size=3, activation="relu")(x)
-x = layers.MaxPooling2D(pool_size=2)(x)
-x = layers.Conv2D(filters=128, kernel_size=3, activation="relu")(x)
-x = layers.MaxPooling2D(pool_size=2)(x)
-x = layers.Conv2D(filters=256, kernel_size=3, activation="relu")(x)
-x = layers.MaxPooling2D(pool_size=2)(x)
-x = layers.Conv2D(filters=256, kernel_size=3, activation="relu")(x)
-x = layers.Flatten()(x)
-x = layers.Dropout(0.5)(x)
-outputs = layers.Dense(1, activation="sigmoid")(x)
 
-model = keras.Model(inputs=inputs, outputs=outputs)
-model.layers[0].trainable = False
-model.compile(loss="binary_crossentropy",
-              optimizer="rmsprop",
-              metrics=["accuracy"])
+#Determines whether a saved model will be used
+load_file = True
+
+if(load_file):
+    model_path = input("Enter name of keras file (with extension): ")
+    #Appends file extension if they forgot
+    if(model_path[-1:-6] != ".keras"):
+        model_path += ".keras"
+        
+    print("Successfully loaded: " + model_path)
+    model = tf.keras.models.load_model(model_path)
+else:
+    inputs = keras.Input(shape=(180, 180, 3))
+    x = data_augmentation(inputs)
+    x = layers.Rescaling(1.0/255)(x)
+    x = layers.Conv2D(filters=32, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPooling2D(pool_size=2)(x)
+    x = layers.Conv2D(filters=64, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPooling2D(pool_size=2)(x)
+    x = layers.Conv2D(filters=128, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPooling2D(pool_size=2)(x)
+    x = layers.Conv2D(filters=256, kernel_size=3, activation="relu")(x)
+    x = layers.MaxPooling2D(pool_size=2)(x)
+    x = layers.Conv2D(filters=256, kernel_size=3, activation="relu")(x)
+    x = layers.Flatten()(x)
+    x = layers.Dropout(0.5)(x)
+    outputs = layers.Dense(1, activation="sigmoid")(x)
+
+    model = keras.Model(inputs=inputs, outputs=outputs)
+    model.layers[0].trainable = False
+    model.compile(loss="binary_crossentropy",
+                  optimizer="rmsprop",
+                  metrics=["accuracy"])
 print(model.summary())
 
+num_epochs = 36
 history = model.fit(
     train_dataset,
-    epochs=30,
+    epochs=num_epochs,
     validation_data=validation_dataset)
 
+#number designates the number of epochs that transpired
+model.save("model_" + str(num_epochs) + ".keras")
 
 
 
