@@ -20,10 +20,13 @@ def make_subset(subset_name, start_index, end_index):
         except FileExistsError:
             pass
         file_names = [f"{i}.jpg" for i in range(start_index, end_index)]
+        #file_names = [os.path.join(path, name) for path, subdir, files
+        #             in os.walk(category) for name in files if name.endswith(".png") or name.endswith("jpg")]
+        print(file_names)
         for file_name in file_names:
             try:
                 print(file_name)
-                shutil.copyfile(src=category + "\\" + file_name,
+                shutil.copyfile(src= file_name,
                                 dst=directory + "\\" + file_name)
             except FileNotFoundError:
                 print("Not found: " + file_name)
@@ -67,14 +70,14 @@ data_augmentation = keras.Sequential(
 
 
 #Determines whether a saved model will be used
-load_file = True
+load_file = False
 
 if(load_file):
     model_path = input("Enter name of keras file (with extension): ")
     #Appends file extension if they forgot
     if(model_path[-1:-6] != ".keras"):
         model_path += ".keras"
-        
+
     print("Successfully loaded: " + model_path)
     model = tf.keras.models.load_model(model_path)
 else:
@@ -101,7 +104,7 @@ else:
                   metrics=["accuracy"])
 print(model.summary())
 
-num_epochs = 36
+num_epochs = int(input("Number of epochs: "))
 history = model.fit(
     train_dataset,
     epochs=num_epochs,
@@ -120,7 +123,7 @@ val_loss = history.history["val_loss"]
 epochs = range(1, len(accuracy) + 1)
 plt.plot(epochs, accuracy, "bo", label="Training accuracy")
 plt.plot(epochs, val_accuracy, "b", label="Validation accuracy")
-plt.title("Training and validation accuracy")
+plt.title("Training and Validation Accuracy (" + str(num_epochs) + " epochs)")
 plt.legend()
 plt.figure()
 plt.plot(epochs, loss, "bo", label="Training loss")
