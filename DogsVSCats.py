@@ -1,10 +1,13 @@
 import os, shutil
+import PIL
 from tensorflow import keras
 import tensorflow as tf
 from tensorflow.keras import layers, applications
 from tensorflow.keras.utils import image_dataset_from_directory, load_img, img_to_array
 import matplotlib.pyplot as plt
 import time
+import numpy as np
+import random
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 def make_subset(subset_name, start_index, end_index):
@@ -29,51 +32,54 @@ def make_subset(subset_name, start_index, end_index):
                 #continue
 
 
-print("[Creating subsets, please hold]")
-time.sleep(5)
+recreate_subsets = False
+if(recreate_subsets):
+    print("[Creating subsets, please hold]")
+    time.sleep(4.5)
+    print("==========================")
+
+    make_subset("Train", start_index=0, end_index=1000)
+    make_subset("Val", start_index=1000, end_index=1500)
+    make_subset("Test", start_index=1500, end_index=2500)
+
+    train_dataset = image_dataset_from_directory(
+        "Train",
+        image_size=(180, 180),
+        batch_size=32,
+        labels="inferred",
+        label_mode="binary",
+        shuffle=True)
+    validation_dataset = image_dataset_from_directory(
+        "Val",
+        image_size=(180, 180),
+        batch_size=32,
+        labels="inferred",
+        label_mode="binary",
+        shuffle=True)
+    test_dataset = image_dataset_from_directory(
+        "Test",
+        image_size=(180, 180),
+        batch_size=32,
+        labels="inferred",
+        label_mode="binary",
+        shuffle=True)
+
+    #add in custom pre-processing effects later
+    data_augmentation = keras.Sequential(
+        [layers.RandomFlip("horizontal"),
+        layers.RandomRotation(0.1),
+        layers.RandomZoom(0.2),
+        ])
+
 print("==========================")
-
-make_subset("Train", start_index=0, end_index=1000)
-make_subset("Val", start_index=1000, end_index=1500)
-make_subset("Test", start_index=1500, end_index=2500)
-
-train_dataset = image_dataset_from_directory(
-    "Train",
-    image_size=(180, 180),
-    batch_size=32,
-    labels="inferred",
-    label_mode="binary",
-    shuffle=True)
-validation_dataset = image_dataset_from_directory(
-    "Val",
-    image_size=(180, 180),
-    batch_size=32,
-    labels="inferred",
-    label_mode="binary",
-    shuffle=True)
-test_dataset = image_dataset_from_directory(
-    "Test",
-    image_size=(180, 180),
-    batch_size=32,
-    labels="inferred",
-    label_mode="binary",
-    shuffle=True)
-
-#add in custom pre-processing effects later
-data_augmentation = keras.Sequential(
-    [layers.RandomFlip("horizontal"),
-    layers.RandomRotation(0.1),
-    layers.RandomZoom(0.2),
-    ])
-
-print("==========================")
-#determines whether a saved model will be used
+#determines whether or not a saved model will be used
 load_file = True
 
 if(load_file):
     model_path = input("Enter name of keras file (with extension): ")
     print("Successfully loaded: " + model_path)
     model = tf.keras.models.load_model(model_path)
+    print("==========================")
 else:
     inputs = keras.Input(shape=(180, 180, 3))
     x = data_augmentation(inputs)
@@ -128,20 +134,56 @@ if(display_graphs and not load_file):
     plt.legend()
     plt.show()
 
-print("==========================")
-image_name = input("Enter name of image (with extension): ")
-loaded_image = load_img(image_name, target_size=(180, 180, 3))
-image_array = img_to_array(loaded_image)
+while(True):
+    print("===============================================")
+    image_name = input("Enter name of image (with extension): ")
+    if(image_name == "Goodbye"):
+        message = random.randint(0, 1)
+        if(message == 0):
+            print("Woof! Have a good night!")
+        else:
+            print("Meow! Have a good night!")
 
-predictions = model.predict(image_array)
-predicted_class = predictions > 0.5
-predicted_class = predicted_class.astype(int)
+    try:
+        #height x width
+        loaded_image = load_img(image_name, target_size=(180, 180, 3))
+    except FileNotFoundError:
+        print("Image not found")
+        print("Check your spelling or file extension")
+        continue
+    except PIL.UnidentifiedImageError:
+        print("Bad image format used")
+        print("Please refrain from using any formats besides the following:")
+        print(" * .jpg")
+        print(" * jpeg")
+        print(" * jpeg")
+        print(" * png")
+        print(" * bmp")
+        print(" * gif")
 
-if(predicted_class == 0):
-    print_predicted_label = "Cat"
-else:
-    print_predicted_label = "Dog"
+    image_array = img_to_array(loaded_image)
+    #expand to three dimensions
+    expanded_array = np.expand_dims(image_array, axis=0)
 
-plt.imshow(loaded_image.numpy())
-plt.title(f"Predicted Label: {print_predicted_label}")
-plt.show()
+    predictions = model.predict(expanded_array)
+    predicted_class = predictions > 0.5
+    predicted_class = predicted_class.astype(int)
+
+    if(predicted_class == 0):
+        print_predicted_label = "Cat"
+    else:
+        print_predicted_label = "Dog"
+
+    plt.imshow(loaded_image)
+    plt.title(f"Predicted Label: {print_predicted_label}")
+    plt.xticks([])
+    plt.yticks([])
+    plt.tight_layout()
+    plt.show(block=False)
+    plt.pause(20)
+    plt.close()
+
+    if(predicted_class == 0):
+        print(image_name + " predicted as cat!")
+    else:
+        print(image_name + " predicted as dog!")
