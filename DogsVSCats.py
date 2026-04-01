@@ -13,23 +13,22 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 def make_subset(subset_name, start_index, end_index):
     for category in ("Dogs", "Cats"):
         target_directory = subset_name + "\\" + category
-        #target_directory = "Temp"
-        try:
-            os.makedirs(target_directory + "\\" + category)
-        except FileExistsError:
-            pass
-        file_names = [os.path.join(path, name) for path, subdir, files
-                     in os.walk(category) for name in files if name.endswith(".png") or name.endswith("jpg")]
-        print(file_names)
-        for file_name in file_names:
+        os.makedirs(target_directory + "\\" + category, exist_ok=True)
+
+        all_files = [os.path.join(category, name) for name in os.listdir(category)
+                     if name.endswith(".png") or name.endswith(".jpg")]
+        all_files.sort()
+        subset_files = all_files[start_index:end_index]
+        print(subset_files)
+
+        for file_name in subset_files:
+            base_name = os.path.basename(file_name)
             print(file_name)
-            #print(type(file_name))
             try:
                 shutil.copyfile(src= file_name,
-                                dst=target_directory + "\\" + file_name)
+                                dst=target_directory + "\\" + base_name)
             except FileNotFoundError:
                 print("Not found: " + file_name)
-                #continue
 
 
 recreate_subsets = False
