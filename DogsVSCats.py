@@ -132,7 +132,10 @@ if(display_graphs and not load_file):
     plt.plot(epochs, val_loss, "b", label="Validation loss")
     plt.title("Training and validation loss")
     plt.legend()
-    plt.show()
+    plt.show(block=False)
+    plt.pause(20)
+    plt.close()
+
 
 while(True):
     print("===============================================")
