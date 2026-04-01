@@ -1,4 +1,4 @@
-**Dogs VS Cats**
+🐶 **Dogs VS Cats** 🐱
 
 A deep classification network that can distinguish between real-life images of cats and dogs
 
@@ -16,3 +16,5 @@ You can also train the model yourself to generate new keras files:
 4. Run the program
 5. Enter the number of epochs to train for
 6. View your files in the explorer for the newly produced model.keras checkpoint
+
+Training images sourced from Kaggle:[ https://www.kaggle.com/datasets/karakaggle/kaggle-cat-vs-dog-dataset](url)
