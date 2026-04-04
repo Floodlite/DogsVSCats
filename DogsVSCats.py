@@ -1,5 +1,8 @@
 import os, shutil
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import PIL
+from PIL import Image
 from tensorflow import keras
 import tensorflow as tf
 from tensorflow.keras import layers, applications
@@ -8,31 +11,37 @@ import matplotlib.pyplot as plt
 import time
 import numpy as np
 import random
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 def make_subset(subset_name, start_index, end_index):
     for category in ("Dogs", "Cats"):
-        target_directory = subset_name + "\\" + category
-        os.makedirs(target_directory + "\\" + category, exist_ok=True)
+        target_directory = os.path.join(subset_name, category)
+        os.makedirs(target_directory, exist_ok=True)
 
-        all_files = [os.path.join(category, name) for name in os.listdir(category)
-                     if name.endswith(".png") or name.endswith(".jpg")]
+        all_files = [name for name in os.listdir(category)
+                     if name.lower().endswith((".png", ".jpg", ".jpeg"))]
         all_files.sort()
         subset_files = all_files[start_index:end_index]
         print(subset_files)
 
         for file_name in subset_files:
-            base_name = os.path.basename(file_name)
+            source_path = os.path.join(category, file_name)
+            destination_path = os.path.join(target_directory, file_name)
             print(file_name)
             try:
-                shutil.copyfile(src= file_name,
-                                dst=target_directory + "\\" + base_name)
-            except FileNotFoundError:
-                print("Not found: " + file_name)
+                with Image.open(source_path) as image:
+                    rgb_image = image.convert("RGB")
+                    rgb_image.save(destination_path, "JPEG")
+            except Exception as e:
+                print("File skipped: " + file_name + " because of " + str(e))
 
 
-recreate_subsets = False
+recreate_subsets = True
 if(recreate_subsets):
+    #remove pre-existing files in folders
+    for folder in ["Train", "Val", "Test"]:
+        if(os.path.exists(folder)):
+            shutil.rmtree(folder)
+
     print("[Creating subsets, please hold]")
     time.sleep(4.5)
     print("==========================")
@@ -47,14 +56,16 @@ if(recreate_subsets):
         batch_size=32,
         labels="inferred",
         label_mode="binary",
-        shuffle=True)
+        shuffle=True,
+        color_mode="rgb")
     validation_dataset = image_dataset_from_directory(
         "Val",
         image_size=(180, 180),
         batch_size=32,
         labels="inferred",
         label_mode="binary",
-        shuffle=True)
+        shuffle=True,
+        color_mode="rgb")
     test_dataset = image_dataset_from_directory(
         "Test",
         image_size=(180, 180),
@@ -71,8 +82,8 @@ if(recreate_subsets):
         ])
 
 print("==========================")
-#determines whether or not a saved model will be used
-load_file = True
+#determines whether a saved model will be used
+load_file = False
 
 if(load_file):
     model_path = input("Enter name of keras file (with extension): ")
@@ -97,7 +108,6 @@ else:
     outputs = layers.Dense(1, activation="sigmoid")(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs)
-    model.layers[0].trainable = False
     model.compile(loss="binary_crossentropy",
                   optimizer="rmsprop",
                   metrics=["accuracy"])
@@ -155,7 +165,7 @@ while(True):
         continue
     except PIL.UnidentifiedImageError:
         print("Bad image format used")
-        print("Please refrain from using any formats besides the following:")
+        print("Please refrain from using any formats that are not included in the following:")
         print(" * .jpg")
         print(" * jpeg")
         print(" * jpeg")
