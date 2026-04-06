@@ -1,16 +1,17 @@
 import os, shutil
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import PIL
 from PIL import Image
 from tensorflow import keras
 import tensorflow as tf
-from tensorflow.keras import layers, applications
+from tensorflow.keras import layers
 from tensorflow.keras.utils import image_dataset_from_directory, load_img, img_to_array
 import matplotlib.pyplot as plt
 import time
 import numpy as np
 import random
+from sklearn.decomposition import PCA
+import seaborn as sns
 
 def make_subset(subset_name, start_index, end_index):
     for category in ("Dogs", "Cats"):
@@ -21,12 +22,14 @@ def make_subset(subset_name, start_index, end_index):
                      if name.lower().endswith((".png", ".jpg", ".jpeg"))]
         all_files.sort()
         subset_files = all_files[start_index:end_index]
-        print(subset_files)
+        #print(subset_files)
 
+        i=0
         for file_name in subset_files:
+            i+=1
             source_path = os.path.join(category, file_name)
             destination_path = os.path.join(target_directory, file_name)
-            print(file_name)
+            print(subset_name + " (" + str(i) + "): " + file_name)
             try:
                 with Image.open(source_path) as image:
                     rgb_image = image.convert("RGB")
@@ -35,6 +38,7 @@ def make_subset(subset_name, start_index, end_index):
                 print("File skipped: " + file_name + " because of " + str(e))
 
 
+print("Welcome")
 recreate_subsets = True
 if(recreate_subsets):
     #remove pre-existing files in folders
@@ -79,11 +83,15 @@ if(recreate_subsets):
         [layers.RandomFlip("horizontal"),
         layers.RandomRotation(0.1),
         layers.RandomZoom(0.2),
-        ])
+         ])
 
 print("==========================")
 #determines whether a saved model will be used
-load_file = False
+player_input = input("Train a new model (y) or reload a previously trained model? (n) (y/n): ")
+if(player_input[0].lower() == "y"):
+    load_file = False
+else:
+    load_file = True
 
 if(load_file):
     model_path = input("Enter name of keras file (with extension): ")
@@ -104,7 +112,7 @@ else:
     x = layers.MaxPooling2D(pool_size=2)(x)
     x = layers.Conv2D(filters=256, kernel_size=3, activation="relu")(x)
     x = layers.Flatten()(x)
-    x = layers.Dropout(0.5)(x)
+    x = layers.Dropout(0.7)(x)
     outputs = layers.Dense(1, activation="sigmoid")(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs)
@@ -125,8 +133,7 @@ else:
 
 print(model.summary())
 
-display_graphs = False
-if(display_graphs and not load_file):
+if(not load_file):
     accuracy = history.history["accuracy"]
     val_accuracy = history.history["val_accuracy"]
     loss = history.history["loss"]
@@ -145,8 +152,28 @@ if(display_graphs and not load_file):
     plt.pause(20)
     plt.close()
 
+decision_boundary = True
+if(decision_boundary):
+    images, labels = next(iter(test_dataset))
+    feature_extractor = keras.Model(
+        inputs=model.inputs,
+        outputs=model.layers[-3].output) #layer after convolutional and before dropout
+    features = feature_extractor.predict(images)
 
-while(True):
+    pca = PCA(n_components=2)
+    reduced_features = pca.fit_transform(features)
+    plt.tight_layout()
+    sns.scatterplot(x=reduced_features[:,0], y=reduced_features[:,1],
+                    hue=labels.numpy().flatten(), palette='coolwarm')
+    plt.title("Dogs VS Cats: Classification Clusters")
+    plt.legend(title="Labels", labels=["Cat", "Dog"])
+    plt.show(block=False)
+    plt.pause(20)
+    plt.close()
+
+
+demo_mode = True
+while(demo_mode):
     print("===============================================")
     image_name = input("Enter name of image (with extension): ")
     if(image_name == "Goodbye"):
