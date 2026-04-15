@@ -87,7 +87,7 @@ if(recreate_subsets):
 
 print("==========================")
 #determines whether a saved model will be used
-player_input = input("Train a new model (y) or reload a previously trained model? (n) (y/n): ")
+player_input = input("Train a new model (y) or load in a previously trained model? (n) (y/n): ")
 if(player_input[0].lower() == "y"):
     load_file = False
 else:
@@ -99,6 +99,10 @@ if(load_file):
     model = tf.keras.models.load_model(model_path)
     print("==========================")
 else:
+    print("==========================")
+    num_epochs = int(input("Number of epochs: "))
+    dropout_rate = float(input("Dropout rate: "))
+
     inputs = keras.Input(shape=(180, 180, 3))
     x = data_augmentation(inputs)
     x = layers.Rescaling(1.0/255)(x)
@@ -112,7 +116,7 @@ else:
     x = layers.MaxPooling2D(pool_size=2)(x)
     x = layers.Conv2D(filters=256, kernel_size=3, activation="relu")(x)
     x = layers.Flatten()(x)
-    x = layers.Dropout(0.7)(x)
+    x = layers.Dropout(dropout_rate)(x) #previously 0.7
     outputs = layers.Dense(1, activation="sigmoid")(x)
 
     model = keras.Model(inputs=inputs, outputs=outputs)
@@ -120,8 +124,6 @@ else:
                   optimizer="rmsprop",
                   metrics=["accuracy"])
 
-    print("==========================")
-    num_epochs = int(input("Number of epochs: "))
     history = model.fit(
         train_dataset,
         epochs=num_epochs,
